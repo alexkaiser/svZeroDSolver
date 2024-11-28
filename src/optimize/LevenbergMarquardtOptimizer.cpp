@@ -98,6 +98,7 @@ void LevenbergMarquardtOptimizer::update_gradient(
       for (size_t l = 0; l < block->global_eqn_ids.size(); l++) {
         block->global_eqn_ids[l] += num_eqns * i;
       }
+      // std::cout << "block = " << block << "\n";
       block->update_gradient(jacobian, residual, alpha, y_obs[i], dy_obs[i]);
       for (size_t l = 0; l < block->global_eqn_ids.size(); l++) {
         block->global_eqn_ids[l] -= num_eqns * i;

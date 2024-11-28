@@ -116,6 +116,43 @@ nlohmann::json calibrate(const nlohmann::json &config) {
     DEBUG_MSG("Created junction " << junction_name);
   }
 
+  // Create vessels
+  DEBUG_MSG("Load chambers");
+
+  int num_params_chamber = 7;
+
+  std::cout << "config = " << config << "\n";
+  std::cout << "config[ chambers ]" << config["chambers"] << "\n"; 
+  std::map<std::int64_t, std::string> chamber_id_map;
+  for (auto const &chamber_config : config["chambers"]) {
+    std::cout << "into loop\n";
+    std::string chamber_name = chamber_config["name"];
+    std::cout << "chamber_name = " << chamber_name << "\n";
+
+    // Create parameter IDs
+    std::vector<int> param_ids;
+    for (size_t k = 0; k < num_params_chamber; k++)
+      param_ids.push_back(param_counter++);
+
+    std::cout << "passed parameter id loop\n"; 
+    model.add_block("ChamberElastanceInductor", param_ids, chamber_name);
+    std::cout << "passed add_block\n";  
+    std::cout << "chamber_config[ chamber_id ] = " << chamber_config["chamber_id"] << "\n";
+    chamber_id_map.insert({chamber_config["chamber_id"], chamber_name});
+    DEBUG_MSG("Created chamber " << chamber_name);
+
+    // // Read connected boundary conditions
+    // if (vessel_config.contains("boundary_conditions")) {
+    //   auto const &vessel_bc_config = vessel_config["boundary_conditions"];
+    //   if (vessel_bc_config.contains("inlet")) {
+    //     inlet_connections.push_back({vessel_bc_config["inlet"], vessel_name});
+    //   }
+    //   if (vessel_bc_config.contains("outlet")) {
+    //     outlet_connections.push_back({vessel_name, vessel_bc_config["outlet"]});
+    //   }
+    // }
+  }
+
   // Create Connections
   DEBUG_MSG("Created connection");
   for (auto &connection : connections) {
@@ -131,6 +168,7 @@ nlohmann::json calibrate(const nlohmann::json &config) {
     auto ele = model.get_block(std::get<0>(connection));
     model.add_node({ele}, {}, ele->get_name() + ":" + std::get<1>(connection));
   }
+
 
   // Finalize model
   model.finalize();
@@ -226,6 +264,28 @@ nlohmann::json calibrate(const nlohmann::json &config) {
       }
     }
   }
+
+  for (auto &chamber_config : output_config["chambers"]) {
+    std::string chamber_name = chamber_config["name"];
+    DEBUG_MSG("Reading initial alpha for " << chamber_name);
+    auto block = model.get_block(chamber_name);
+    alpha[block->global_param_ids[0]] =
+        chamber_config["values"].value("Emax", 0.0);
+    alpha[block->global_param_ids[1]] =
+        chamber_config["values"].value("Emin", 0.0);
+    alpha[block->global_param_ids[2]] =
+        chamber_config["values"].value("Vrd", 0.0);
+    alpha[block->global_param_ids[3]] =
+        chamber_config["values"].value("Vrs", 0.0);
+    alpha[block->global_param_ids[4]] =
+        chamber_config["values"].value("t_active", 0.0);
+    alpha[block->global_param_ids[5]] =
+        chamber_config["values"].value("t_twitch", 0.0);
+    alpha[block->global_param_ids[6]] =
+        chamber_config["values"].value("Impedance", 0.0);
+
+  }
+
 
   // Run optimization
   DEBUG_MSG("Start optimization");

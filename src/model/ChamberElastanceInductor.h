@@ -95,7 +95,7 @@
  *
  * \f[
  * \mathbf{F}^{e}=\left[\begin{array}{ccccc}
- * 1 & 0 &  0 & 0  & E(t) \\
+ * 1 & 0 &  0 & 0  & -E(t) \\
  * 1 & 0 & -1 & 0  & 0 \\
  * 0 & 1 &  0 & -1 & 0
  * \end{array}\right]
@@ -200,6 +200,12 @@ class ChamberElastanceInductor : public Block {
    */
   void update_time(SparseSystem &system, std::vector<double> &parameters);
 
+  void update_gradient(
+    Eigen::SparseMatrix<double> &jacobian,
+    Eigen::Matrix<double, Eigen::Dynamic, 1> &residual,
+    Eigen::Matrix<double, Eigen::Dynamic, 1> &alpha, std::vector<double> &y,
+    std::vector<double> &dy);
+
   /**
    * @brief Number of triplets of element
    *
@@ -209,6 +215,7 @@ class ChamberElastanceInductor : public Block {
   TripletsContributions num_triplets{6, 2, 0};
 
  private:
+  double act;    // activation 
   double Elas;   // Chamber Elastance
   double Vrest;  // Rest Volume
 
