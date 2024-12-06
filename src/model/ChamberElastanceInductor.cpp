@@ -68,21 +68,86 @@ void ChamberElastanceInductor::get_elastance_values(
   double Emin = parameters[global_param_ids[ParamId::EMIN]];
   double Vrd = parameters[global_param_ids[ParamId::VRD]];
   double Vrs = parameters[global_param_ids[ParamId::VRS]];
+
+  // cos act function specific parameters 
   double t_active = parameters[global_param_ids[ParamId::TACTIVE]];
   double t_twitch = parameters[global_param_ids[ParamId::TTWITCH]];
+
+  // two hill specific parameters 
+  double t_shift = parameters[global_param_ids[ParamId::TSHIFT]];
+  double tau_1 = parameters[global_param_ids[ParamId::TAU_1]];
+  double tau_2 = parameters[global_param_ids[ParamId::TAU_2]];
+  double m1 = parameters[global_param_ids[ParamId::M1]];
+  double m2 = parameters[global_param_ids[ParamId::M2]];
+
+  // switch parameter 
+  auto two_hill = parameters[global_param_ids[ParamId::TWO_HILL]];
+
 
   auto T_cardiac = model->cardiac_cycle_period;
   auto t_in_cycle = fmod(model->time, T_cardiac);
 
-  double t_contract = 0;
-  if (t_in_cycle >= t_active) {
-    t_contract = t_in_cycle - t_active;
+  double act = 0;
+  double act_two_hill = 0;
+  
+  static bool first_entry = true;
+
+  if (two_hill){    
+    
+    if (first_entry){
+
+      std::cout << "first entry, model->time = " << model->time << "\n";
+
+      double max_value_two_hill = 0.0;
+      double dt = 1e-5; 
+
+      double t_shifted_temp;
+
+      // two hill scalars 
+      double g1_temp, g2_temp;
+      double two_hill_val;
+
+      for (double t_temp=0; t_temp<model->cardiac_cycle_period; t_temp += dt){
+        t_shifted_temp = t_temp - t_shift;
+        g1_temp = (t_shifted_temp > 0) ? pow(t_shifted_temp/tau_1, m1) : 0.0;
+        g2_temp = (t_shifted_temp > 0) ? pow(t_shifted_temp/tau_2, m2) : 0.0;
+        two_hill_val = (g1_temp/(1.0 + g1_temp)) * (1.0/(1.0 + g2_temp));
+
+        max_value_two_hill = std::max(max_value_two_hill, two_hill_val);
+      }
+
+      std::cout << "max_value_two_hill = " << max_value_two_hill << "\n";
+      normalization_twohill = 1.0/max_value_two_hill;
+      normalization_initialized = true; 
+      first_entry = false;
+    }
+  
+      if (!normalization_initialized){
+        throw std::runtime_error("Normalization not initialized");
+      }
+  
+      double t_shifted = t_in_cycle - t_shift;
+  
+      // two hill scalars 
+      double g1 = (t_shifted > 0) ? pow(t_shifted/tau_1, m1) : 0.0;
+      double g2 = (t_shifted > 0) ? pow(t_shifted/tau_2, m2) : 0.0;
+  
+      act_two_hill = normalization_twohill * (g1/(1.0 + g1)) * (1.0/(1.0 + g2));
+  }
+  else{
+    // cos default 
+    double t_contract = 0;
+    if (t_in_cycle >= t_active) {
+      t_contract = t_in_cycle - t_active;
+    }
+
+    double act = 0;
+    if (t_contract <= t_twitch) {
+      act = -0.5 * cos(2 * M_PI * t_contract / t_twitch) + 0.5;
+    }
   }
 
-  double act = 0;
-  if (t_contract <= t_twitch) {
-    act = -0.5 * cos(2 * M_PI * t_contract / t_twitch) + 0.5;
-  }
+  std::cout << "model->time = " << model->time << "\tact = " << act << "\tact_two_hill = " << act_two_hill << "\n";
 
   Vrest = (1.0 - act) * (Vrd - Vrs) + Vrs;
   Elas = (Emax - Emin) * act + Emin;

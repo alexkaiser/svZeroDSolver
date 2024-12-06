@@ -154,7 +154,13 @@ class ChamberElastanceInductor : public Block {
                {"Vrs", InputParameter()},
                {"t_active", InputParameter()},
                {"t_twitch", InputParameter()},
-               {"Impedance", InputParameter()}}) {}
+               {"Impedance", InputParameter()},
+               {"t_shift", InputParameter()},
+               {"tau_1", InputParameter()},
+               {"tau_2", InputParameter()},
+               {"m1", InputParameter()},
+               {"m2", InputParameter()},
+               {"two_hill", InputParameter()}}) {}
 
   /**
    * @brief Local IDs of the parameters
@@ -167,7 +173,13 @@ class ChamberElastanceInductor : public Block {
     VRS = 3,
     TACTIVE = 4,
     TTWITCH = 5,
-    IMPEDANCE = 6
+    IMPEDANCE = 6,
+    TSHIFT = 7,
+    TAU_1 = 8,
+    TAU_2 = 9,
+    M1 = 10,
+    M2 = 11,
+    TWO_HILL = 12
   };
 
   /**
@@ -211,6 +223,10 @@ class ChamberElastanceInductor : public Block {
  private:
   double Elas;   // Chamber Elastance
   double Vrest;  // Rest Volume
+
+  double normalization_twohill; // normalization constant for two hill function 
+  bool normalization_initialized;
+
 
   /**
    * @brief Update the elastance functions which depend on time
