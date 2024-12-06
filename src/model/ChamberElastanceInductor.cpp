@@ -92,6 +92,8 @@ void ChamberElastanceInductor::get_elastance_values(
   
   static bool first_entry = true;
 
+  std::cout << "source code change seen, asdf\n";
+
   if (two_hill){    
     
     if (first_entry){
@@ -132,7 +134,8 @@ void ChamberElastanceInductor::get_elastance_values(
       double g1 = (t_shifted > 0) ? pow(t_shifted/tau_1, m1) : 0.0;
       double g2 = (t_shifted > 0) ? pow(t_shifted/tau_2, m2) : 0.0;
   
-      act_two_hill = normalization_twohill * (g1/(1.0 + g1)) * (1.0/(1.0 + g2));
+      act = normalization_twohill * (g1/(1.0 + g1)) * (1.0/(1.0 + g2));
+      act_two_hill = act;
   }
   else{
     // cos default 
